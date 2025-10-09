@@ -8,3 +8,5 @@
 
 Решение:
     -шел по шагам по лекции. Делал так же в GitLab. Когда столкнулся с проблемой верификации аккаунта, создал кастомный runner из текстового урока.
+- На этапе Build docker всё время вылетала ошибка: ERROR: Cannot connect to the Docker daemon at tcp://docker:2375. Is the docker daemon running?
+Поправил .gitlab-ci.yml при помощи ИИ
