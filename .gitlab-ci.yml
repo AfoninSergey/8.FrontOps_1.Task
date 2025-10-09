@@ -17,7 +17,7 @@ Npm ci:
 Build:
   stage: build
   image: node:18
-  scrip:
+  script:
     - cd frontend
     - npm run build
   cache:
@@ -29,7 +29,7 @@ Build:
 Test:
   stage: build
   image: node:18
-  scrip:
+  script:
     - cd frontend
     - npm run test
   cache:
