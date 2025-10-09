@@ -53,8 +53,8 @@ Build docker:
   stage: build_docker
   image: docker:latest
   services:
-    - docker:dind
-    command: ["--tls=false"]  
+    - name: docker:dind
+      command: ["--tls=false"]  
   variables:
     IMAGE_NAME: aspiregray/result-frontend
     DOCKER_TLS_VERIFY: "0"
