@@ -8,6 +8,7 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_TLS_VERIFY: "0"
+  NODE_ENV: production
 
 Npm ci:
   stage: install
@@ -16,10 +17,10 @@ Npm ci:
     - cd frontend
     - npm ci
   cache:
-    policy: push
     key: ${CI_COMMIT_REF_SLUG}-modules
+    policy: push
     paths:
-      - 'frontend/node_modules'
+      - frontend/node_modules
 
 Build:
   stage: build
@@ -31,11 +32,11 @@ Build:
     - key: ${CI_COMMIT_REF_SLUG}-modules
       policy: pull
       paths:
-        - 'frontend/node_modules'
+        - frontend/node_modules
     - key: ${CI_COMMIT_REF_SLUG}-build
       policy: push
       paths:
-        - "frontend/build"
+        - frontend/build
 
 Test:
   stage: build
@@ -44,10 +45,10 @@ Test:
     - cd frontend
     - npm run test
   cache:
-    policy: pull
     key: ${CI_COMMIT_REF_SLUG}-modules
+    policy: pull
     paths:
-      - 'frontend/node_modules'
+      - frontend/node_modules
 
 Build docker:
   stage: build_docker
@@ -68,10 +69,11 @@ Build docker:
   before_script:
     - apk add --no-cache curl
     - |
+      echo "Waiting for Docker daemon to start on docker:2375..."
       until curl -sSf http://docker:2375/_ping >/dev/null 2>&1; do
-        echo "waiting for docker daemon on docker:2375..."
         sleep 1
       done
+      echo "Docker daemon is ready!"
     - docker version
     - docker info
   script:
@@ -82,8 +84,7 @@ Build docker:
     key: ${CI_COMMIT_REF_SLUG}-build
     policy: pull
     paths:
-      - "frontend/build"
-  privileged: true      
+      - frontend/build
 
 Deploy:
   stage: deploy
@@ -93,9 +94,10 @@ Deploy:
   when: manual
   script:
     - |
-      sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o StrictHostKeyChecking=no "
-      cd 8.FrontOps_1.Task &&
-      git pull &&
-      docker compose pull nginx &&
-      docker stop nginx &&
-      docker compose up -d nginx"
+      sshpass -p "${SSH_PASS}" ssh "${SSH_HOST}" -o StrictHostKeyChecking=no "
+        cd 8.FrontOps_1.Task &&
+        git pull &&
+        docker compose pull nginx &&
+        docker stop nginx &&
+        docker compose up -d nginx
+      "
