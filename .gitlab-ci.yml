@@ -4,10 +4,6 @@ stages:
   - build_docker
   - deploy
 
-variables:
-  DOCKER_DRIVER: overlay2
-  IMAGE_NAME: aspiregray/result-frontend
-
 Npm ci:
   stage: install
   image: node:18
@@ -18,7 +14,7 @@ Npm ci:
     policy: push
     key: ${CI_COMMIT_REF_SLUG}-modules
     paths:
-      - frontend/node_modules
+      - 'frontend/node_modules'
 
 Build:
   stage: build
@@ -30,11 +26,11 @@ Build:
     - key: ${CI_COMMIT_REF_SLUG}-modules
       policy: pull
       paths:
-        - frontend/node_modules
+        - 'frontend/node_modules'
     - key: ${CI_COMMIT_REF_SLUG}-build
       policy: push
       paths:
-        - frontend/build
+        - "frontend/build"
 
 Test:
   stage: build
@@ -46,44 +42,28 @@ Test:
     policy: pull
     key: ${CI_COMMIT_REF_SLUG}-modules
     paths:
-      - frontend/node_modules
+      - 'frontend/node_modules'
 
 Build docker:
   stage: build_docker
-  image: docker:24.0.5-cli
-  services:
-    - name: docker:24.0.5-dind
-      alias: docker
+  image: docker:latest
+  services: []
   variables:
-    DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""        # Отключаем автогенерацию TLS
-    DOCKER_TLS_VERIFY: "0"
-    DOCKER_DRIVER: overlay2
+    IMAGE_NAME: aspiregray/result-frontend
   only:
     - main
   when: manual
   before_script:
-    - apk add --no-cache curl
-    - unset DOCKER_CERT_PATH
-    - rm -rf /root/.docker
-    - |
-      echo "Waiting for Docker daemon to start on docker:2375..."
-      until (curl -sSf http://docker:2375/_ping >/dev/null 2>&1); do
-        sleep 1
-      done
-      echo "Docker daemon is ready!"
-    - docker version
+    - docker version 
   script:
-    - echo "${DOCKER_PWD}" | docker login -u aspiregray --password-stdin
-    - docker build -f frontend.Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
-    - docker push ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${IMAGE_NAME}:latest
-    - docker push ${IMAGE_NAME}:latest
+    - docker login -u aspiregray -p ${DOCKER_PWD}
+    - docker build -f frontend.Dockerfile -t ${IMAGE_NAME} .
+    - docker push ${IMAGE_NAME}
   cache:
     key: ${CI_COMMIT_REF_SLUG}-build
     policy: pull
     paths:
-      - frontend/build
+      - "frontend/build"
 
 Deploy:
   stage: deploy
@@ -91,8 +71,9 @@ Deploy:
   only:
     - main
   when: manual
-  script: |
-    sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o StrictHostKeyChecking=no "
+  script:
+    - |
+      sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o StrictHostKeyChecking=no "
       cd 8.FrontOps_1.Task &&
       git pull &&
       docker compose pull nginx &&
