@@ -5,10 +5,8 @@ stages:
   - deploy
 
 variables:
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_TLS_VERIFY: "0"
-  NODE_ENV: production
+  DOCKER_DRIVER: overlay2
+  IMAGE_NAME: aspiregray/result-frontend
 
 Npm ci:
   stage: install
@@ -17,8 +15,8 @@ Npm ci:
     - cd frontend
     - npm ci
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-modules
     policy: push
+    key: ${CI_COMMIT_REF_SLUG}-modules
     paths:
       - frontend/node_modules
 
@@ -45,8 +43,8 @@ Test:
     - cd frontend
     - npm run test
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-modules
     policy: pull
+    key: ${CI_COMMIT_REF_SLUG}-modules
     paths:
       - frontend/node_modules
 
@@ -56,17 +54,11 @@ Build docker:
   services:
     - name: docker:24.0.5-dind
       alias: docker
-      command:
-        - "--host=tcp://0.0.0.0:2375"
-        - "--tls=false"
-        - "--tlsverify=false"
-        - "--storage-driver=overlay2"
   variables:
     DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_CERTDIR: ""        # Отключаем автогенерацию TLS
     DOCKER_TLS_VERIFY: "0"
-    DOCKER_DRIVER: "overlay2"
-    IMAGE_NAME: "aspiregray/result-frontend"
+    DOCKER_DRIVER: overlay2
   only:
     - main
   when: manual
@@ -99,12 +91,10 @@ Deploy:
   only:
     - main
   when: manual
-  script:
-    - |
-      sshpass -p "${SSH_PASS}" ssh "${SSH_HOST}" -o StrictHostKeyChecking=no "
-        cd 8.FrontOps_1.Task &&
-        git pull &&
-        docker compose pull nginx &&
-        docker stop nginx &&
-        docker compose up -d nginx
-      "
+  script: |
+    sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o StrictHostKeyChecking=no "
+      cd 8.FrontOps_1.Task &&
+      git pull &&
+      docker compose pull nginx &&
+      docker stop nginx &&
+      docker compose up -d nginx"
