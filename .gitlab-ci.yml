@@ -54,30 +54,30 @@ Build docker:
   image: docker:24.0.5-cli
   services:
     - name: docker:24.0.5-dind
-      alias: docker
+      command: ["--tls=false"]
   variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
     IMAGE_NAME: aspiregray/result-frontend
-    DOCKER_DRIVER: overlay2
   only:
     - main
   when: manual
   before_script:
     - apk add --no-cache curl
-    - unset DOCKER_CERT_PATH || true
-    - rm -rf /root/.docker || true
-    - |
-      echo "Waiting for Docker daemon to start on docker:2375..."
-      until curl -sSf http://docker:2375/_ping >/dev/null 2>&1; do
-        sleep 1
+    - echo "Waiting for Docker daemon to start on docker:2375..."
+    - for i in $(seq 1 10); do
+        if curl -s docker:2375/_ping | grep -q OK; then
+          echo "Docker daemon is ready!";
+          break;
+        fi;
+        echo "Waiting... ($i/10)";
+        sleep 3;
       done
-      echo "Docker daemon is ready!"
-    - docker version
   script:
-    - echo "${DOCKER_PWD}" | docker login -u aspiregray --password-stdin
-    - docker build -f frontend.Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
-    - docker push ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${IMAGE_NAME}:latest
-    - docker push ${IMAGE_NAME}:latest
+    - docker info
+    - docker login -u aspiregray -p "${DOCKER_PWD}"
+    - docker build -f frontend.Dockerfile -t "${IMAGE_NAME}" .
+    - docker push "${IMAGE_NAME}"
   cache:
     key: ${CI_COMMIT_REF_SLUG}-build
     policy: pull
