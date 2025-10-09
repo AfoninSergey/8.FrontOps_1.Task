@@ -86,14 +86,12 @@ Deploy:
   only:
     - main
   when: manual
-  variables:
-    GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
   script:
     - echo "🚀 Deploy started..."
-    - sshpass -p "${SSH_PASS}" ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "
-        cd 8.FrontOps_1.Task &&
-        git pull &&
-        docker compose pull nginx &&
-        docker stop nginx || true &&
+    - sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+        cd 8.FrontOps_1.Task
+        git pull
+        docker compose pull nginx
+        docker stop nginx || true
         docker compose up -d nginx
-      "
+      EOF
