@@ -6,8 +6,8 @@ stages:
 
 variables:
   DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_TLS_VERIFY: "0"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: "1"
 
 Npm ci:
   stage: install
@@ -51,16 +51,19 @@ Test:
 
 Build docker:
   stage: build_docker
-  image: docker
+  image: docker:latest
   services:
     - docker:dind
+    command: ["--tls=false"]  
   variables:
     IMAGE_NAME: aspiregray/result-frontend
+    DOCKER_TLS_VERIFY: "0"
+    DOCKER_TLS_CERTDIR: ""  
   only:
     - main
   when: manual
   before_script:
-    - docker info
+    - docker version 
   script:
     - docker login -u aspiregray -p ${DOCKER_PWD}
     - docker build -f frontend.Dockerfile -t ${IMAGE_NAME} .
@@ -78,7 +81,7 @@ Deploy:
     - main
   when: manual
   script:
-    - sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o stricthostkeychecking=no"
+    - sshpass -p ${SSH_PASS} ssh ${SSH_HOST} -o stricthostkeychecking=no "
       cd 8.FrontOps_1.Task &&
       git pull &&
       docker compose pull nginx &&
