@@ -68,13 +68,15 @@ Build docker:
   when: manual
   before_script:
     - apk add --no-cache curl
+    # полностью отключаем TLS и очищаем старые настройки
+    - unset DOCKER_CERT_PATH
+    - rm -rf /root/.docker
     - |
       echo "Waiting for Docker daemon to start on docker:2375..."
       until curl -sSf http://docker:2375/_ping >/dev/null 2>&1; do
         sleep 1
       done
       echo "Docker daemon is ready!"
-    - docker version
     - docker info
   script:
     - echo "${DOCKER_PWD}" | docker login -u aspiregray --password-stdin
