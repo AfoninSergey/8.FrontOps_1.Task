@@ -1,7 +1,6 @@
 stages:
   - install
   - build
-  - test
   - build_docker
   - deploy
 
@@ -32,17 +31,13 @@ Build:
       policy: push
       paths:
         - "frontend/build"
-  artifacts:
-    paths:
-      - "frontend/build/"
-    expire_in: 1 hour
 
 Test:
-  stage: test
+  stage: build
   image: node:18
   script:
     - cd frontend
-    - npm run test -- --watchAll=false
+    - npm run test
   cache:
     policy: pull
     key: ${CI_COMMIT_REF_SLUG}-modules
@@ -51,21 +46,18 @@ Test:
 
 Build docker:
   stage: build_docker
-  image: docker:latest
-  services: []
+  image: docker
+  services:
+    - docker:dind
   variables:
     IMAGE_NAME: aspiregray/result-frontend
   only:
     - main
   when: manual
-  before_script:
-    - docker version
   script:
-    - docker login -u aspiregray -p $DOCKER_PWD
-    - docker build -f frontend.Dockerfile -t $IMAGE_NAME .
-    - docker push $IMAGE_NAME
-  dependencies:
-    - Build
+    - docker login -u aspiregray -p ${DOCKER_PWD}
+    - docker build -f frontend.Dockerfile -t ${IMAGE_NAME} .
+    - docker push ${IMAGE_NAME}
   cache:
     key: ${CI_COMMIT_REF_SLUG}-build
     policy: pull
@@ -74,19 +66,14 @@ Build docker:
 
 Deploy:
   stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client sshpass
+  image: ringcentral/sshpass
   only:
     - main
   when: manual
   script:
-    - |
-      sshpass -p $SSH_PASS ssh -o StrictHostKeyChecking=no $SSH_HOST "
+    - sshpass -p ${SSH_PASS} ssh ${SSH_HOST} "
       cd 8.FrontOps_1.Task &&
-      git pull origin-gitlab main &&
+      git pull &&
       docker compose pull nginx &&
-      docker compose stop nginx &&
+      docker stop nginx &&
       docker compose up -d nginx"
-  dependencies:
-    - Build docker
